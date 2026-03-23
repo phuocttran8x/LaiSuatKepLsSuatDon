@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Biểu đồ lãi đơn và lãi kép</title>
+  <style>
+    :root{
+      --bg:#020617;
+      --card:#0f172a;
+      --muted:#94a3b8;
+      --text:#f8fafc;
+      --line:#38bdf8;
+      --grid:#334155;
+      --accent:#e2e8f0;
+      --good:#22c55e;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial, Helvetica, sans-serif;background:var(--bg);color:var(--text);}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px;}
+    h1{margin:0 0 8px;font-size:34px;}
+    .sub{color:var(--muted);margin-bottom:24px;line-height:1.5;}
+    .grid{display:grid;grid-template-columns:320px 1fr;gap:20px;}
+    .card{background:var(--card);border:1px solid #1e293b;border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+    .label{display:block;font-size:14px;color:var(--accent);margin-bottom:8px;font-weight:bold;}
+    input[type="number"], input[type="range"]{width:100%;}
+    input[type="number"]{padding:10px 12px;border-radius:12px;border:1px solid #334155;background:#020617;color:#fff;font-size:16px;margin-bottom:10px;}
+    input[type="range"]{margin-bottom:8px;}
+    .current{font-size:13px;color:var(--muted);margin-bottom:18px;}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+    .stat-title{font-size:13px;color:var(--muted);margin-bottom:6px;}
+    .stat-value{font-size:24px;font-weight:bold;line-height:1.2;}
+    .formula{font-size:15px;color:var(--muted);line-height:1.6;}
+    .formula strong{display:block;color:var(--text);font-size:24px;margin:6px 0 8px;}
+    .legend{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 12px;color:var(--muted);font-size:14px;}
+    .legend-item{display:flex;align-items:center;gap:8px;}
+    .legend-line{width:28px;height:0;border-top-width:4px;border-top-style:solid;border-radius:999px;}
+    .legend-compound{border-color:#38bdf8;}
+    .legend-simple{border-color:#f59e0b;}
+    .compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;}
+    .compare-card-title{font-size:13px;color:var(--muted);margin-bottom:6px;}
+    .compare-card-value{font-size:22px;font-weight:bold;line-height:1.25;}
+    svg{width:100%;height:420px;display:block;background:#020617;border-radius:16px;}
+    .tip{margin-top:14px;color:var(--muted);font-size:14px;}
+    .footer{margin-top:16px;font-size:14px;color:var(--good);}
+    @media (max-width: 900px){
+      .grid{grid-template-columns:1fr}
+      .stats{grid-template-columns:1fr}
+      .compare-grid{grid-template-columns:1fr}
+      h1{font-size:28px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Biểu đồ so sánh lãi đơn và lãi kép</h1>
+    <div class="sub">
+      Chỉnh trực tiếp số tiền, lãi suất và thời gian để so sánh <b>lãi đơn</b> và <b>lãi kép</b>.
+      Bạn sẽ thấy rõ khoảng cách giữa 2 cách tăng trưởng theo từng năm.
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <label class="label">Số tiền ban đầu (VND)</label>
+        <input id="principalInput" type="number" value="100000000" min="0" step="1000000">
+        <input id="principalRange" type="range" min="0" max="1000000000" step="1000000" value="100000000">
+        <div class="current">Hiện tại: <span id="principalNow"></span></div>
+
+        <label class="label">Lãi suất mỗi năm (%)</label>
+        <input id="rateInput" type="number" value="10" min="0" max="30" step="0.1">
+        <input id="rateRange" type="range" min="0" max="30" step="0.1" value="10">
+        <div class="current">Hiện tại: <span id="rateNow"></span></div>
+
+        <label class="label">Số năm</label>
+        <input id="yearsInput" type="number" value="35" min="0" max="60" step="1">
+        <input id="yearsRange" type="range" min="0" max="60" step="1" value="35">
+        <div class="current">Hiện tại: <span id="yearsNow"></span></div>
+
+        <div class="footer">Mở file này bằng trình duyệt là chạy offline được.</div>
+      </div>
+
+      <div>
+        <div class="stats">
+          <div class="card">
+            <div class="stat-title">Tiền ban đầu</div>
+            <div class="stat-value" id="startValue"></div>
+          </div>
+          <div class="card">
+            <div class="stat-title" id="compoundEndLabel">Lãi kép sau 35 năm</div>
+            <div class="stat-value" id="compoundEndValue"></div>
+          </div>
+          <div class="card">
+            <div class="stat-title" id="simpleEndLabel">Lãi đơn sau 35 năm</div>
+            <div class="stat-value" id="simpleEndValue"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:bold; margin-bottom:12px;">Biểu đồ tăng trưởng</div>
+          <div class="legend">
+            <div class="legend-item"><span class="legend-line legend-compound"></span><span>Lãi kép</span></div>
+            <div class="legend-item"><span class="legend-line legend-simple"></span><span>Lãi đơn</span></div>
+          </div>
+          <svg id="chart" viewBox="0 0 760 420" preserveAspectRatio="none"></svg>
+          <div class="tip">Trục ngang = số năm · Trục dọc = giá trị tài sản · Đường xanh = lãi kép · Đường vàng = lãi đơn</div>
+        </div>
+
+        <div class="compare-grid">
+          <div class="card">
+            <div class="compare-card-title">Phần tăng thêm từ lãi kép</div>
+            <div class="compare-card-value" id="compoundGrowthValue"></div>
+          </div>
+          <div class="card">
+            <div class="compare-card-title">Phần tăng thêm từ lãi đơn</div>
+            <div class="compare-card-value" id="simpleGrowthValue"></div>
+          </div>
+          <div class="card">
+            <div class="compare-card-title">Lợi thế của lãi kép</div>
+            <div class="compare-card-value" id="differenceValue"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="formula">Công thức đang dùng:</div>
+          <strong>Lãi kép = Tiền ban đầu × (1 + lãi suất)^số năm</strong>
+          <div class="formula" id="compoundFormulaText"></div>
+          <strong style="margin-top:18px;">Lãi đơn = Tiền ban đầu × (1 + lãi suất × số năm)</strong>
+          <div class="formula" id="simpleFormulaText"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const principalInput = $('principalInput');
+    const principalRange = $('principalRange');
+    const rateInput = $('rateInput');
+    const rateRange = $('rateRange');
+    const yearsInput = $('yearsInput');
+    const yearsRange = $('yearsRange');
+
+    let animationFrame = null;
+    let currentAnimatedYear = 0;
+
+    function formatMoney(value){
+      return new Intl.NumberFormat('vi-VN', {style:'currency', currency:'VND', maximumFractionDigits:0}).format(value);
+    }
+    function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+    function syncPair(input, range, min, max){
+      input.addEventListener('input', () => {
+        const v = clamp(Number(input.value || 0), min, max);
+        range.value = v;
+        render(true);
+      });
+      range.addEventListener('input', () => {
+        input.value = range.value;
+        render(true);
+      });
+    }
+
+    syncPair(principalInput, principalRange, 0, 1000000000);
+    syncPair(rateInput, rateRange, 0, 30);
+    syncPair(yearsInput, yearsRange, 0, 60);
+
+    function getCompoundData(principal, rate, years){
+      const r = rate / 100;
+      const arr = [];
+      for(let n = 0; n <= years; n++) arr.push({ year:n, value: Math.round(principal * Math.pow(1 + r, n)) });
+      return arr;
+    }
+
+    function getSimpleData(principal, rate, years){
+      const r = rate / 100;
+      const arr = [];
+      for(let n = 0; n <= years; n++) arr.push({ year:n, value: Math.round(principal * (1 + r * n)) });
+      return arr;
+    }
+
+    function buildAnimatedData(data, animatedYear){
+      const maxYear = data[data.length - 1].year;
+      const safeYear = clamp(animatedYear, 0, maxYear);
+      const fullYears = Math.floor(safeYear);
+      const progress = safeYear - fullYears;
+      const points = data.slice(0, fullYears + 1).map(item => ({ ...item }));
+      if (fullYears < maxYear) {
+        const start = data[fullYears];
+        const end = data[fullYears + 1];
+        const interpolatedValue = Math.round(start.value + (end.value - start.value) * progress);
+        if (progress > 0) points.push({ year: safeYear, value: interpolatedValue, isPartial: true });
+      }
+      return points;
+    }
+
+    function formatAxisLabel(val){
+      if (val >= 1000000000) return (val/1000000000).toFixed(1).replace('.0','') + ' tỷ';
+      if (val >= 1000000) return Math.round(val/1000000) + 'tr';
+      return Math.round(val/1000) + 'k';
+    }
+
+    function drawSeries(points, x, y){
+      let d = '';
+      points.forEach((p, i) => { d += (i === 0 ? 'M' : 'L') + x(p.year) + ',' + y(p.value) + ' '; });
+      return d;
+    }
+
+    function drawChart(compoundFullData, simpleFullData, animatedYear){
+      const svg = $('chart');
+      const w = 760, h = 420;
+      const m = {top: 20, right: 24, bottom: 42, left: 72};
+      const innerW = w - m.left - m.right;
+      const innerH = h - m.top - m.bottom;
+      const maxX = Math.max(compoundFullData[compoundFullData.length-1].year, 1);
+      const maxY = Math.max(...compoundFullData.map(d => d.value), ...simpleFullData.map(d => d.value), 1);
+      const compoundVisibleData = buildAnimatedData(compoundFullData, animatedYear);
+      const simpleVisibleData = buildAnimatedData(simpleFullData, animatedYear);
+      const compoundPoint = compoundVisibleData[compoundVisibleData.length - 1] || compoundFullData[0];
+      const simplePoint = simpleVisibleData[simpleVisibleData.length - 1] || simpleFullData[0];
+      const x = (v) => m.left + (v / maxX) * innerW;
+      const y = (v) => m.top + innerH - (v / maxY) * innerH;
+      let html = '';
+
+      for(let i=0;i<5;i++){
+        const gy = m.top + (innerH/4)*i;
+        html += `<line x1="${m.left}" y1="${gy}" x2="${w-m.right}" y2="${gy}" stroke="${getComputedStyle(document.documentElement).getPropertyValue('--grid')}" stroke-width="1" />`;
+      }
+      html += `<line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${h-m.bottom}" stroke="#cbd5e1" />`;
+      html += `<line x1="${m.left}" y1="${h-m.bottom}" x2="${w-m.right}" y2="${h-m.bottom}" stroke="#cbd5e1" />`;
+
+      for(let i=0;i<=4;i++){
+        const val = Math.round((maxY / 4) * i);
+        const py = y(val);
+        html += `<text x="${m.left-10}" y="${py+4}" text-anchor="end" font-size="12" fill="#cbd5e1">${formatAxisLabel(val)}</text>`;
+      }
+
+      const xStep = Math.max(1, Math.ceil(maxX / 6));
+      for(let i=0;i<=maxX;i+=xStep){
+        const px = x(i);
+        html += `<text x="${px}" y="${h-16}" text-anchor="middle" font-size="12" fill="#cbd5e1">${i}</text>`;
+      }
+
+      html += `<path d="${drawSeries(simpleVisibleData, x, y)}" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" />`;
+      html += `<path d="${drawSeries(compoundVisibleData, x, y)}" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" />`;
+
+      compoundVisibleData.forEach((point, index) => {
+        if (Number.isInteger(point.year)) html += `<circle cx="${x(point.year)}" cy="${y(point.value)}" r="${index === compoundVisibleData.length - 1 ? 5 : 3}" fill="#ffffff" opacity="${index === compoundVisibleData.length - 1 ? 1 : 0.65}" />`;
+      });
+      simpleVisibleData.forEach((point, index) => {
+        if (Number.isInteger(point.year)) html += `<circle cx="${x(point.year)}" cy="${y(point.value)}" r="${index === simpleVisibleData.length - 1 ? 5 : 3}" fill="#fde68a" opacity="${index === simpleVisibleData.length - 1 ? 1 : 0.65}" />`;
+      });
+
+      html += `<line x1="${x(compoundPoint.year)}" y1="${m.top}" x2="${x(compoundPoint.year)}" y2="${h-m.bottom}" stroke="#94a3b8" stroke-dasharray="4 4" opacity="0.7" />`;
+      html += `<circle cx="${x(compoundPoint.year)}" cy="${y(compoundPoint.value)}" r="6" fill="#ffffff" />`;
+      html += `<circle cx="${x(simplePoint.year)}" cy="${y(simplePoint.value)}" r="6" fill="#fde68a" stroke="#f59e0b" stroke-width="2" />`;
+
+      const tooltipWidth = 210;
+      const tooltipHeight = 72;
+      const tooltipX = Math.min(Math.max(x(compoundPoint.year) - tooltipWidth / 2, m.left + 4), w - m.right - tooltipWidth);
+      const tooltipY = Math.max(Math.min(y(compoundPoint.value), y(simplePoint.value)) - 90, m.top + 4);
+      const yearLabel = Number.isInteger(compoundPoint.year) ? compoundPoint.year : compoundPoint.year.toFixed(1);
+
+      html += `<rect x="${tooltipX}" y="${tooltipY}" width="${tooltipWidth}" height="${tooltipHeight}" rx="10" fill="#0f172a" stroke="#334155" />`;
+      html += `<text x="${tooltipX + 12}" y="${tooltipY + 19}" font-size="12" fill="#94a3b8">Năm ${yearLabel}</text>`;
+      html += `<text x="${tooltipX + 12}" y="${tooltipY + 39}" font-size="13" fill="#38bdf8">Lãi kép: ${formatMoney(compoundPoint.value)}</text>`;
+      html += `<text x="${tooltipX + 12}" y="${tooltipY + 58}" font-size="13" fill="#f59e0b">Lãi đơn: ${formatMoney(simplePoint.value)}</text>`;
+
+      svg.innerHTML = html;
+    }
+
+    function animateChart(compoundData, simpleData){
+      if (animationFrame) cancelAnimationFrame(animationFrame);
+      const totalYears = Math.max(compoundData[compoundData.length - 1].year, 0);
+      const duration = Math.max(1200, totalYears * 140);
+      const start = performance.now();
+
+      function step(now){
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        currentAnimatedYear = totalYears * eased;
+        drawChart(compoundData, simpleData, currentAnimatedYear);
+        if (progress < 1) animationFrame = requestAnimationFrame(step);
+        else {
+          currentAnimatedYear = totalYears;
+          drawChart(compoundData, simpleData, totalYears);
+          animationFrame = null;
+        }
+      }
+
+      if (totalYears === 0) {
+        currentAnimatedYear = 0;
+        drawChart(compoundData, simpleData, 0);
+        return;
+      }
+      animationFrame = requestAnimationFrame(step);
+    }
+
+    function render(shouldAnimate = false){
+      const principal = clamp(Number(principalInput.value || 0), 0, 1000000000);
+      const rate = clamp(Number(rateInput.value || 0), 0, 30);
+      const years = clamp(Number(yearsInput.value || 0), 0, 60);
+
+      principalInput.value = principal;
+      principalRange.value = principal;
+      rateInput.value = rate;
+      rateRange.value = rate;
+      yearsInput.value = years;
+      yearsRange.value = years;
+
+      const compoundData = getCompoundData(principal, rate, years);
+      const simpleData = getSimpleData(principal, rate, years);
+      const compoundFinalValue = compoundData[compoundData.length - 1].value;
+      const simpleFinalValue = simpleData[simpleData.length - 1].value;
+      const compoundGrowth = compoundFinalValue - principal;
+      const simpleGrowth = simpleFinalValue - principal;
+      const difference = compoundFinalValue - simpleFinalValue;
+
+      $('principalNow').textContent = formatMoney(principal);
+      $('rateNow').textContent = rate + '% / năm';
+      $('yearsNow').textContent = years + ' năm';
+
+      $('startValue').textContent = formatMoney(principal);
+      $('compoundEndLabel').textContent = 'Lãi kép sau ' + years + ' năm';
+      $('simpleEndLabel').textContent = 'Lãi đơn sau ' + years + ' năm';
+      $('compoundEndValue').textContent = formatMoney(compoundFinalValue);
+      $('simpleEndValue').textContent = formatMoney(simpleFinalValue);
+      $('compoundGrowthValue').textContent = formatMoney(compoundGrowth);
+      $('simpleGrowthValue').textContent = formatMoney(simpleGrowth);
+      $('differenceValue').textContent = formatMoney(difference);
+      $('compoundFormulaText').textContent = `${formatMoney(principal)} × (1 + ${rate/100})^${years} = ${formatMoney(compoundFinalValue)}`;
+      $('simpleFormulaText').textContent = `${formatMoney(principal)} × (1 + ${rate/100} × ${years}) = ${formatMoney(simpleFinalValue)}`;
+
+      if (shouldAnimate) animateChart(compoundData, simpleData);
+      else {
+        currentAnimatedYear = years;
+        drawChart(compoundData, simpleData, currentAnimatedYear);
+      }
+    }
+
+    render(true);
+  </script>
+</body>
+</html>
